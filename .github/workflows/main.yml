@@ -1,0 +1,41 @@
+name: Build Android APK
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Dependencies
+        run: |
+          if [ -d "MYRA_Source_Code" ]; then cd MYRA_Source_Code; fi
+          npm install
+
+      - name: Build APK
+        run: |
+          if [ -d "MYRA_Source_Code" ]; then cd MYRA_Source_Code; fi
+          mkdir -p android/app/src/main/assets
+          npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res/
+          keytool -genkeypair -v -storetype PKCS12 -keystore android/app/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000
+          cd android && ./gradlew assembleRelease
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MYRA_Android_v1.0.0
+          path: |
+            **/android/app/build/outputs/apk/release/app-release.apk
+            **/android/app/build/outputs/apk/debug/app-debug.apk
+            
